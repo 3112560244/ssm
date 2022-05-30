@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context
+       https://www.springframework.org/schema/context/spring-context.xsd
+       http://www.springframework.org/schema/tx
+       http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+    <!-- 声明加载并读取数据库及连接池(数据源)的配置信息的jdbc.properties文件 -->
+    <context:property-placeholder location="classpath:jdbc.properties"/>
+    <!-- 配置阿里巴巴的数据库连接池Druid ,该类在druid-1.1.20.jar包中-->
+    <bean id="druidDataSource" class="com.alibaba.druid.pool.DruidDataSource" init-method="init" destroy-method="close">
+        <property name="driverClassName" value="${jdbc.driver}"/>
+        <property name="url" value="${jdbc.dburl}"/>
+        <property name="username" value="${jdbc.user}"/>
+        <property name="password" value="${jdbc.password}"/>
+        <!-- 获取设置初始化最小连接数 -->
+        <property name="initialSize" value="${jdbc.pool.initialSize}"/>
+        <!-- 获取设置连接池最小空闲连接数 -->
+        <property name="minIdle" value="${jdbc.pool.minIdle}"/>
+        <!-- 获取设置连接池最大并发使用连接数量 -->
+        <property name="maxActive" value="${jdbc.pool.maxActive}"/>
+        <!-- 获取设置连接最大等待时间 毫秒 -->
+        <property name="maxWait" value="${jdbc.pool.maxWait}"/>
+    </bean>
+    <!-- 配置事务管理器TransactionManager,依赖于数据源 ,该类在spring-jdbc.jar包中-->
+    <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="druidDataSource"/>
+    </bean>
+    <!-- 配置开启基于注解的事务管理 -->
+    <tx:annotation-driven transaction-manager="transactionManager"/>
+    <!-- 配置MyBatis中的SqlSessionFactory工厂，同时指定数据源以及和MyBatis的整合，该类在 mybatis-spring.jar包中-->
+    <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <!-- 注入数据源 -->
+        <property name="dataSource" ref="druidDataSource"/>
+        <!-- 通过configLocation属性来指定在启动Spring容器的同时所要加载的MyBatis框架的核心配置文件 -->
+        <property name="configLocation" value="classpath:mybatis-config.xml"/>
+    </bean>
+    <!-- 配置以自动扫描的形式来装配MyBatis中的映射器(注册Mapper扫描配置器)，被@Mapper注解标注的接口自动装配为MyBatis的映射器接口 -->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <!-- 通过配置basePackage属性来指定要对那些包下的使用@Mapper注解的组件(接口)进行扫描 -->
+        <property name="basePackage" value="com.qx.dao"/>
+        <!-- 指定在Spring中定义的SqlSessionFactory的Bean名称 -->
+        <property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"/>
+    </bean>
+    <!-- 配置开启类扫描的注解解析器 -->
+    <context:component-scan base-package="com.qx">
+        <!-- 配置过滤掉@Controller注解，因为在springmvc.xml文件中已经进行扫描配置了 -->
+        <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+    </context:component-scan>
+    <!-- 配置开启依赖注入的注解解析器 -->
+    <context:annotation-config/>
+</beans>
